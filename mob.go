@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,7 +13,7 @@ import (
 )
 
 const (
-	versionNumber = "1.5.0"
+	versionNumber = "1.6.0"
 	mobStashName  = "mob-stash-name"
 )
 
@@ -281,8 +282,8 @@ func execute(command string, parameter []string, configuration Configuration) {
 
 	switch command {
 	case "s", "start":
-		start(configuration)
-		if !isMobProgramming(configuration) {
+		err := start(configuration)
+		if !isMobProgramming(configuration) || err != nil {
 			return
 		}
 		if len(parameter) > 0 {
@@ -514,7 +515,7 @@ func reset(configuration Configuration) {
 	sayInfo("Branches " + currentWipBranch + " and " + configuration.RemoteName + "/" + currentWipBranch + " deleted")
 }
 
-func start(configuration Configuration) {
+func start(configuration Configuration) error {
 	stashed := false
 	if hasUncommittedChanges() {
 		if configuration.MobStartIncludeUncommittedChanges {
@@ -525,7 +526,7 @@ func start(configuration Configuration) {
 			sayUnstagedChangesInfo()
 			sayUntrackedFilesInfo()
 			sayTodo("To start mob programming including uncommitted changes, use", "mob start --include-uncommitted-changes")
-			return
+			return errors.New("cannot start; clean working tree required")
 		}
 	}
 
@@ -538,18 +539,18 @@ func start(configuration Configuration) {
 		sayInfo("qualified mob branches detected")
 		sayTodo("To start mob programming, use", "mob start --branch <branch>")
 		sayIndented("(use \"\" for the default mob branch)")
-		return
+		return errors.New("qualified mob branches detected")
 	}
 
 	if !hasRemoteBranch(currentBaseBranch, configuration) {
 		sayError("Remote branch " + configuration.RemoteName + "/" + currentBaseBranch + " is missing")
 		sayTodo("To set the upstream branch, use", "git push "+configuration.RemoteName+" "+currentBaseBranch+" --set-upstream")
-		return
+		return errors.New("Remote branch is missing")
 	}
 
 	if hasUnpushedCommits(currentBaseBranch, configuration) {
 		sayError("cannot start; unpushed changes on base branch must be pushed upstream")
-		return
+		return errors.New("cannot start; unpushed changes on base branch must be pushed upstream")
 	}
 
 	if !isMobProgramming(configuration) {
@@ -570,6 +571,8 @@ func start(configuration Configuration) {
 
 	sayInfo("on wip branch " + currentWipBranch + " (base branch " + currentBaseBranch + ")")
 	sayLastCommitsList(currentBaseBranch, currentWipBranch)
+
+	return nil // no error
 }
 
 func sayUntrackedFilesInfo() {
@@ -711,7 +714,10 @@ func done(configuration Configuration) {
 		if err != nil {
 			sayError(err.Error())
 		}
-		sayTodo("To finish, use", "git commit")
+		if configuration.MobDoneSquash {
+			sayTodo("To finish, use", "git commit")
+		}
+
 	} else {
 		git("checkout", currentBaseBranch)
 		git("branch", "-D", currentWipBranch)
@@ -901,14 +907,14 @@ Basic Commands(Options):
   start [<minutes>]                      Start a <minutes> timer
     [--include-uncommitted-changes|-i]   Move uncommitted changes to wip branch
     [--branch|-b <branch-postfix>]       Set wip branch to 'mob/<base-branch>/<branch-postfix>'
-  next 
+  next
     [--stay|-s]                          Stay on wip branch (default)
     [--return-to-base-branch|-r]         Return to base branch
     [--message|-m <commit-message>]      Override commit message
   done
     [--no-squash]                        Do not squash commits from wip branch
     [--squash]                           Squash commits from wip branch
-  reset 
+  reset
     [--branch|-b <branch-postfix>]       Set wip branch to 'mob/<base-branch>/<branch-postfix>'
 
 Experimental Commands:
