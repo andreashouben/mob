@@ -10,25 +10,17 @@
     <img alt="Downloads" src="https://img.shields.io/github/downloads/remotemobprogramming/mob/total" /></a>
   <a href="https://github.com/remotemobprogramming/mob/releases">
     <img  alt="Downloads of latest" src="https://img.shields.io/github/downloads/remotemobprogramming/mob/latest/total" /></a>
-  <a href="https://github.com/remotemobprogramming/mob/releases/latest">
-    <img alt="Version" src="https://img.shields.io/github/v/release/remotemobprogramming/mob?sort=semver" /></a>
   <a href="https://img.shields.io/github/stars/remotemobprogramming/mob">
     <img alt="Stars" src="https://img.shields.io/github/stars/remotemobprogramming/mob" /></a>
 </p>
 
-Smooth [git handover](https://www.remotemobprogramming.org/#git-handover) with 'mob'.
+Smooth [git handover](https://www.remotemobprogramming.org/#git-handover) for remote pair/mob programming.
 
 - **mob** is [an open source command line tool written in go](https://github.com/remotemobprogramming/mob)
-- **mob** is the fastest way to [hand over code via git](https://www.remotemobprogramming.org/#git-handover) and feels [ubersmooth](https://twitter.com/holgerGP/status/1277653842444902400?s=20)
-- **mob** supports remote mob/ensemble or pair programming using screen sharing
-- **mob** works on every platform, even [ Apple Silicon](https://twitter.com/simonharrer/status/1332236430429581312?s=20)
-- **mob** keeps your branches clean and only creates WIP commits on temporary wip branches
-- **mob** supports multiple wip branches per base branch
-- **mob** notifies you when it's time ⏱️ to handover
-- **mob** can moo 🐄
-- **mob** is even better when you follow its [best practices](#best-practices)
+- **mob** is the fastest way to [hand over code via git](https://www.remotemobprogramming.org/#git-handover)
+- **mob** keeps your branches clean and only creates WIP commits on temporary branches
 
-## What people say about 'mob'
+## What people say about mob
 
 > "Mob has allowed us to run fast-paced, engaging, and effective sessions by enabling sub-10-second handover times and otherwise getting out of the way. A simple but great tool!" &mdash; [Jeff Langr, developer](https://twitter.com/jlangr)
 
@@ -38,11 +30,9 @@ Smooth [git handover](https://www.remotemobprogramming.org/#git-handover) with '
 
 > "I was recently introduced to [mob.sh](https://mob.sh) for remote pairing/mobbing collaboration and I absolutely love it. The timer feature is really a selling point for me. Kudos" &mdash; [Fabien Illert, IT Consultant](https://twitter.com/fabienillert)
 
-> "Really enjoying working with http://mob.sh. Whole team added it to the "Glad" column during yesterday's retro ;-)" &mdash; [twitter.com/miljar](https://twitter.com/miljar/status/1392040059105382401)
-
 ## How to install
 
-The preferred way to install mob is as a binary via the provided install script:
+The recommended way to install mob is as a binary via the provided install script:
 ```
 # works for macOS, linux, and even on windows in git bash
 curl -sL install.mob.sh | sh
@@ -57,7 +47,7 @@ brew install remotemobprogramming/brew/mob
 brew upgrade remotemobprogramming/brew/mob
 ```
 
-On windows via [Scoop](https://scoop.sh/):
+On Windows via [Scoop](https://scoop.sh/):
 
 ```
 scoop install mob
@@ -71,7 +61,7 @@ On Arch Linux via yay:
 yay -S mobsh-bin
 ```
 
-On Ubuntu via [snap](https://snapcraft.io/mob-sh):
+On Ubuntu there's an EXPERIMENTAL [snap](https://snapcraft.io/mob-sh) package with a known limitation (ssh-agent not working):
 
 ```bash
 sudo snap install mob-sh
@@ -101,12 +91,38 @@ go install github.com/remotemobprogramming/mob@v1.2.0
 
 ## How to use
 
-You only need three commands: `mob start`, `mob next`, and `mob done`. 
+You only need three commands: `mob start`, `mob next`, and `mob done`.
+
 Switch to a separate branch with `mob start` and handover to the next person with `mob next`.
 Repeat.
-When you're done, get your changes into the staging area of the `master` branch with `mob done` and commit them.  
+When you're done, get your changes into the staging area of the `main` branch with `mob done` and commit them.  
 
 [![asciicast](https://asciinema.org/a/321885.svg)](https://asciinema.org/a/321885)
+
+Here's a short example on how the two developers Carola and Maria code a feature together and push it in the end.
+
+```bash
+# Carola
+main $ mob start
+mob/main $ echo "hello" > work.txt
+mob/main $ mob next
+
+# Maria
+main $ mob start
+mob/main $ cat work.txt # shows "hello"
+mob/main $ echo " world" >> work.txt
+mob/main $ mob next
+
+# Carola
+mob/main $ mob start
+mob/main $ cat work.txt # shows "hello world"
+mob/main $ echo "!" >> work.txt
+mob/main $ mob done
+main $ git commit -m "create greeting file"
+main $ git push
+```
+
+And here's the man page of the tool:
 
 ```
 mob enables a fast Git handover
@@ -192,6 +208,23 @@ Examples:
   - Have your editor save your files on every keystroke automatically. IntelliJ products do this automatically. VS Code, however, needs to be configured via "File > Auto Save toggle".
   - *Why?* Sometimes people forget to save their files. With autosave, any change will be handed over via `mob next`.
 
+### Complimentary Scripts
+
+`mob-start feature1` creates a new base branch `feature1` to immediately start a wip branch `mob/feature1` from there. 
+
+```bash
+mob-start() { git checkout -b "$@" && git push origin "$@" --set-upstream && mob start --include-uncommitted-changes; }
+```
+
+### Useful Aliases
+
+```bash
+alias ms='mob start'
+alias mn='mob next'
+alias md='mob done'
+alias moo='mob moo'
+```
+
 ## More on Installation
 
 ### Arch Linux
@@ -221,12 +254,28 @@ Install that on Debian/Ubuntu/Mint as follows:
 sudo apt-get install espeak-ng-espeak mbrola-us1
 ```
 
+or on Arch Linux as follows:
+```bash
+sudo pacman -S espeak-ng-espeak
+yay -S mbrola-voices-us1
+```
+
 Create a little script in your `$PATH` called `say` with the following content:
 
 ```bash
 #!/bin/sh
 espeak -v us-mbrola-1 "$@"
 ```
+
+If you use WSL2 on windows, install eSpeak as windows tool and Create a little script in your `$PATH` called `say` with the following content:
+
+```bash
+#!/bin/sh
+/mnt/c/Program\ Files\ \(x86\)/eSpeak/command_line/espeak.exe "$@"
+```
+
+make sure that the path to the windows `espeak.exe`fits your installation.
+You can avoid the long path by adding it to your windows path variable.
 
 ## How to configure
 

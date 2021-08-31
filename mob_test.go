@@ -90,17 +90,17 @@ func TestDetermineBranches(t *testing.T) {
 func assertDetermineBranches(t *testing.T, branch string, qualifier string, branches []string, expectedBase string, expectedWip string) {
 	configuration := getDefaultConfiguration()
 	configuration.WipBranchQualifier = qualifier
-	baseBranch, wipBranch := determineBranches(branch, branches, configuration)
-	equals(t, expectedBase, baseBranch)
-	equals(t, expectedWip, wipBranch)
+	baseBranch, wipBranch := determineBranches(newBranch(branch), branches, configuration)
+	equals(t, newBranch(expectedBase), baseBranch)
+	equals(t, newBranch(expectedWip), wipBranch)
 }
 
 func TestRemoveWipPrefix(t *testing.T) {
 	configuration := getDefaultConfiguration()
 	configuration.WipBranchPrefix = "mob/"
-	equals(t, "master-green", configuration.removeWipPrefix("mob/master-green"))
-	equals(t, "master-green-blue", configuration.removeWipPrefix("mob/master-green-blue"))
-	equals(t, "main-branch", configuration.removeWipPrefix("mob/main-branch"))
+	equals(t, "master-green", newBranch("mob/master-green").removeWipPrefix(configuration).Name)
+	equals(t, "master-green-blue", newBranch("mob/master-green-blue").removeWipPrefix(configuration).Name)
+	equals(t, "main-branch", newBranch("mob/main-branch").removeWipPrefix(configuration).Name)
 }
 
 func TestRemoveWipBranchQualifier(t *testing.T) {
@@ -109,37 +109,37 @@ func TestRemoveWipBranchQualifier(t *testing.T) {
 	configuration.WipBranchQualifierSeparator = "-"
 	configuration.WipBranchQualifier = "green"
 	configuration.WipBranchQualifierSet = true
-	equals(t, "master", removeWipQualifier("master-green", []string{}, configuration))
+	equals(t, "master", newBranch("master-green").removeWipQualifier([]string{}, configuration).Name)
 
 	configuration.WipBranchQualifierSeparator = "-"
 	configuration.WipBranchQualifier = "test-branch"
 	configuration.WipBranchQualifierSet = true
-	equals(t, "master", removeWipQualifier("master-test-branch", []string{}, configuration))
+	equals(t, "master", newBranch("master-test-branch").removeWipQualifier([]string{}, configuration).Name)
 
 	configuration.WipBranchQualifierSeparator = "-"
 	configuration.WipBranchQualifier = "branch"
 	configuration.WipBranchQualifierSet = true
-	equals(t, "master-test", removeWipQualifier("master-test-branch", []string{}, configuration))
+	equals(t, "master-test", newBranch("master-test-branch").removeWipQualifier([]string{}, configuration).Name)
 
 	configuration.WipBranchQualifierSeparator = "-"
 	configuration.WipBranchQualifier = "branch"
 	configuration.WipBranchQualifierSet = true
-	equals(t, "master-test", removeWipQualifier("master-test-branch", []string{"master-test"}, configuration))
+	equals(t, "master-test", newBranch("master-test-branch").removeWipQualifier([]string{"master-test"}, configuration).Name)
 
 	configuration.WipBranchQualifierSeparator = "/-/"
 	configuration.WipBranchQualifier = "branch-qualifier"
 	configuration.WipBranchQualifierSet = true
-	equals(t, "main", removeWipQualifier("main/-/branch-qualifier", []string{}, configuration))
+	equals(t, "main", newBranch("main/-/branch-qualifier").removeWipQualifier([]string{}, configuration).Name)
 
 	configuration.WipBranchQualifierSeparator = "-"
 	configuration.WipBranchQualifier = "branchqualifier"
 	configuration.WipBranchQualifierSet = true
-	equals(t, "main/branchqualifier", removeWipQualifier("main/branchqualifier", []string{}, configuration))
+	equals(t, "main/branchqualifier", newBranch("main/branchqualifier").removeWipQualifier([]string{}, configuration).Name)
 
 	configuration.WipBranchQualifierSeparator = ""
 	configuration.WipBranchQualifier = "branchqualifier"
 	configuration.WipBranchQualifierSet = true
-	equals(t, "main", removeWipQualifier("mainbranchqualifier", []string{}, configuration))
+	equals(t, "main", newBranch("mainbranchqualifier").removeWipQualifier([]string{}, configuration).Name)
 }
 
 func TestRemoveWipBranchQualifierWithoutBranchQualifierSet(t *testing.T) {
@@ -148,12 +148,12 @@ func TestRemoveWipBranchQualifierWithoutBranchQualifierSet(t *testing.T) {
 	configuration.WipBranchQualifierSeparator = "-"
 	configuration.WipBranchQualifier = ""
 	configuration.WipBranchQualifierSet = false
-	equals(t, "main", removeWipQualifier("main", []string{}, configuration))
+	equals(t, "main", newBranch("main").removeWipQualifier([]string{}, configuration).Name)
 
 	configuration.WipBranchQualifierSeparator = "-"
 	configuration.WipBranchQualifier = ""
 	configuration.WipBranchQualifierSet = false
-	equals(t, "master", removeWipQualifier("master-test-branch", []string{}, configuration))
+	equals(t, "master", newBranch("master-test-branch").removeWipQualifier([]string{}, configuration).Name)
 }
 
 func TestMobRemoteNameEnvironmentVariable(t *testing.T) {
@@ -228,14 +228,6 @@ func TestVersion(t *testing.T) {
 	assertOutputContains(t, output, versionNumber)
 }
 
-func TestStatusNotMobProgramming(t *testing.T) {
-	output, configuration := setup(t)
-
-	status(configuration)
-
-	assertOutputContains(t, output, "you aren't mob programming")
-}
-
 func TestNextNotMobProgramming(t *testing.T) {
 	output, configuration := setup(t)
 
@@ -290,7 +282,7 @@ func TestStatusMobProgramming(t *testing.T) {
 
 	status(configuration)
 
-	assertOutputContains(t, output, "you are mob programming")
+	assertOutputContains(t, output, "you are on wip branch mob-session")
 }
 
 func TestStatusWithMoreThan5LinesOfLog(t *testing.T) {
@@ -304,7 +296,7 @@ func TestStatusWithMoreThan5LinesOfLog(t *testing.T) {
 	}
 
 	status(configuration)
-	assertOutputContains(t, output, "This mob branch contains 6 commits.")
+	assertOutputContains(t, output, "wip branch 'mob-session' contains 6 commits.")
 }
 
 func TestExecuteKicksOffStatus(t *testing.T) {
@@ -312,7 +304,7 @@ func TestExecuteKicksOffStatus(t *testing.T) {
 
 	execute("status", []string{}, getDefaultConfiguration())
 
-	assertOutputContains(t, output, "you aren't mob programming")
+	assertOutputContains(t, output, "you are on base branch 'master'")
 }
 
 func TestExecuteInvalidCommandKicksOffHelp(t *testing.T) {
@@ -343,8 +335,9 @@ func TestStartWithMultipleExistingBranches(t *testing.T) {
 
 	configuration.WipBranchQualifier = ""
 	start(configuration)
-	assertOnBranch(t, "master")
-	assertOutputContains(t, output, "qualified mob branches detected")
+	assertOnBranch(t, "mob-session")
+	assertOutputContains(t, output, "preexisting wip branches have been detected")
+	assertOutputContains(t, output, "mob/master-green")
 }
 
 func TestStartWithMultipleExistingBranchesAndEmptyWipBranchQualifier(t *testing.T) {
@@ -410,6 +403,37 @@ func TestStartNextStartWithBranch(t *testing.T) {
 
 	start(configuration)
 	assertOnBranch(t, "mob/master-green")
+}
+
+func TestStartFromDivergingBranches(t *testing.T) {
+	output, configuration := setup(t)
+	checkoutBranch("feature-something")
+	checkoutBranch("feature-something-2")
+
+	assertOnBranch(t, "feature-something-2")
+	start(configuration)
+	assertOnBranch(t, "mob/feature-something-2")
+	next(configuration)
+
+	git("checkout", "feature-something")
+	start(configuration)
+	assertOnBranch(t, "mob/feature-something")
+	assertOutputContains(t, output, "preexisting wip branches have been detected")
+	assertOutputContains(t, output, "mob/feature-something-2")
+}
+
+func TestStartFromDivergingBranches_noWarning(t *testing.T) {
+	output, configuration := setup(t)
+	checkoutBranch("mob/feature-something")
+	checkoutBranch("feature-something")
+	checkoutBranch("mob/feature-something-2")
+	checkoutBranch("feature-something-2")
+
+	assertOnBranch(t, "feature-something-2")
+	start(configuration)
+	assertOnBranch(t, "mob/feature-something-2")
+
+	assertOutputNotContains(t, output, "qualified mob branches detected")
 }
 
 func TestStartNextOnFeatureWithBranch(t *testing.T) {
@@ -493,6 +517,15 @@ func TestStartHasUnpushedCommits(t *testing.T) {
 
 	assertOutputContains(t, output, "cannot start; unpushed changes")
 	assertOutputContains(t, output, "unpushed commits")
+}
+
+func TestBranch(t *testing.T) {
+	output, configuration := setup(t)
+	start(configuration)
+
+	branch(configuration)
+
+	assertOutputContains(t, output, "\norigin/mob-session\n")
 }
 
 func TestStartIncludeUntrackedFiles(t *testing.T) {
@@ -861,7 +894,7 @@ func TestDoneMerge(t *testing.T) {
 	setWorkingDir(tempDir + "/local")
 	start(configuration)
 	done(configuration)
-	assertOutputContains(t, output, "   git commit")
+	assertOutputContains(t, output, "  git commit")
 }
 
 func TestStartAndNextInSubdir(t *testing.T) {
@@ -902,7 +935,7 @@ func TestNotAGitRepoMessage(t *testing.T) {
 	output, _ := setup(t)
 	setWorkingDir(tempDir + "/notgit")
 	sayGitError("TEST", "TEST", errors.New("TEST"))
-	assertOutputContains(t, output, "mob expects the current working directory to be a git repository.")
+	assertOutputContains(t, output, "'mob' expects the current working directory to be a git repository.")
 }
 
 func setup(t *testing.T) (output *string, configuration Configuration) {
@@ -999,8 +1032,8 @@ func createFile(t *testing.T, filename string, content string) (pathToFile strin
 
 func assertOnBranch(t *testing.T, branch string) {
 	currentBranch := gitCurrentBranch()
-	if currentBranch != branch {
-		failWithFailure(t, "on branch "+branch, "on branch "+currentBranch)
+	if currentBranch.Name != branch {
+		failWithFailure(t, "on branch "+branch, "on branch "+currentBranch.String())
 	}
 }
 
@@ -1018,8 +1051,8 @@ func assertOutputNotContains(t *testing.T, output *string, notContains string) {
 }
 
 func assertMobSessionBranches(t *testing.T, configuration Configuration, branch string) {
-	if !hasRemoteBranch(branch, configuration) {
-		failWithFailure(t, configuration.RemoteName+"/"+branch, "none")
+	if !newBranch(branch).hasRemoteBranch(configuration) {
+		failWithFailure(t, newBranch(branch).remote(configuration).Name, "none")
 	}
 	if !hasLocalBranch(branch) {
 		failWithFailure(t, branch, "none")
@@ -1027,8 +1060,8 @@ func assertMobSessionBranches(t *testing.T, configuration Configuration, branch 
 }
 
 func assertNoMobSessionBranches(t *testing.T, configuration Configuration, branch string) {
-	if hasRemoteBranch(branch, configuration) {
-		failWithFailure(t, "none", configuration.RemoteName+"/"+branch)
+	if newBranch(branch).hasRemoteBranch(configuration) {
+		failWithFailure(t, "none", newBranch(branch).remote(configuration).Name)
 	}
 	if hasLocalBranch(branch) {
 		failWithFailure(t, "none", branch)
@@ -1046,4 +1079,9 @@ func failWithFailure(t *testing.T, exp interface{}, act interface{}) {
 	_, file, line, _ := runtime.Caller(1)
 	fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, exp, act)
 	t.FailNow()
+}
+
+func checkoutBranch(datBranch string) {
+	git("checkout", "-b", datBranch)
+	git("push", "origin", datBranch, "--set-upstream")
 }

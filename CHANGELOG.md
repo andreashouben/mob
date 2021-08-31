@@ -1,3 +1,21 @@
+# 1.10.0
+- Print current time after mob start. This helps when scrolling through the terminal to distinguish the mob start calls.
+
+# 1.9.0
+- Show commit hash of WIP commits made by the `mob` tool on the console.
+- `mob start --include-uncommitted-changes` now fails fast. That means, if `mob` can detect any issue preventing it to succeed, it will exit BEFORE calling `git stash`. This will make error recovery much easier as one doesn't have to think about applying any stashes by themselves. 
+
+# 1.8.0
+- `mob next` does not show the same committer multiple times in the list of previous committers.
+- `mob next` does not suggest the current Git user to be the next typist as long as there were other persons involved in the mob.
+- `mob next` performs a simple lookahead to also suggest persons who might have been absent only during the last mob round.
+- When user.name is not set in the git config, mob no longer shows an error but a warning with a help how to fix it.
+
+# 1.7.0
+- Allows creating parallel mob sessions on the same repository more easily.
+- `mob branch` shows all remote mob branches currently available.
+- `mob fetch` fetches the remote state, so you have everything up to date locally. Helpful to combine with `mob status` and `mob branch` who don't fetch by themselves.
+
 # 1.6.0
 - When `mob start` fails, the timer no longer starts to run.
 
